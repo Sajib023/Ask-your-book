@@ -1,0 +1,66 @@
+name: rag_ai_reader
+description: A local AI-powered document reader with RAG capabilities
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI & Icons
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.9
+  
+  # File handling
+  file_picker: ^6.1.1
+  path_provider: ^2.1.1
+  permission_handler: ^11.1.0
+  
+  # PDF processing
+  syncfusion_flutter_pdf: ^23.2.7
+  
+  # Local database
+  sqflite: ^2.3.0
+  
+  # HTTP requests
+  http: ^1.1.2
+  dio: ^5.4.0
+  
+  # State management
+  provider: ^6.1.1
+  
+  # Vector operations
+  collection: ^1.18.0
+  
+  # JSON handling
+  json_annotation: ^4.8.1
+  
+  # Shared preferences
+  shared_preferences: ^2.2.2
+  
+  # Math operations for embeddings
+  ml_linalg: ^13.15.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  json_serializable: ^6.7.1
+  build_runner: ^2.4.7
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/
+  
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: fonts/Roboto-Regular.ttf
+        - asset: fonts/Roboto-Bold.ttf
+          weight: 700
