@@ -19,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   String _statusMessage = '';
+  double? _progressValue; // For LinearProgressIndicator
   List<DocumentModel> _documents = [];
   
   @override
@@ -52,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } finally {
       setState(() {
         _isLoading = false;
+        _progressValue = null; // Ensure progress is cleared on completion or error
       });
     }
   }
@@ -76,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isLoading = true;
       _statusMessage = 'Selecting PDF file...';
+      _progressValue = null; // Reset progress
     });
 
     try {
@@ -85,12 +88,14 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _statusMessage = 'No file selected';
           _isLoading = false;
+          _progressValue = null;
         });
         return;
       }
 
       setState(() {
         _statusMessage = 'Validating PDF...';
+        _progressValue = null;
       });
 
       // Validate PDF
@@ -99,12 +104,14 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _statusMessage = 'Invalid PDF file';
           _isLoading = false;
+          _progressValue = null;
         });
         return;
       }
 
       setState(() {
         _statusMessage = 'Saving PDF...';
+        _progressValue = null;
       });
 
       // Save PDF to app directory
@@ -114,26 +121,49 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _statusMessage = 'Failed to save PDF';
           _isLoading = false;
+          _progressValue = null;
         });
         return;
       }
 
       setState(() {
         _statusMessage = 'Extracting text...';
+        _progressValue = 0.0; // Start progress for extraction
       });
 
       // Extract text
-      final content = await pdfParser.extractTextFromPdf(savedPath);
+      String content = '';
+      try {
+        content = await pdfParser.extractTextFromPdf(
+          savedPath,
+          onProgress: (currentPage, totalPages) {
+            setState(() {
+              _statusMessage = 'Extracting text... Page $currentPage of $totalPages';
+              _progressValue = totalPages > 0 ? currentPage / totalPages : 0.0;
+            });
+          },
+        );
+      } catch (e) {
+        setState(() {
+          _statusMessage = 'Error extracting text: $e';
+          _isLoading = false;
+          _progressValue = null;
+        });
+        return;
+      }
+
       if (content.isEmpty) {
         setState(() {
           _statusMessage = 'No text found in PDF';
           _isLoading = false;
+          _progressValue = null;
         });
         return;
       }
 
       setState(() {
         _statusMessage = 'Creating document chunks...';
+        _progressValue = null; // Reset for next step or hide
       });
 
       // Create document
@@ -151,13 +181,33 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _statusMessage = 'Generating embeddings...';
+        _progressValue = 0.0; // Start progress for embeddings
       });
 
       // Generate embeddings
-      final documentWithEmbeddings = await vectorStore.generateEmbeddings(document);
+      DocumentModel documentWithEmbeddings;
+      try {
+        documentWithEmbeddings = await vectorStore.generateEmbeddings(
+          document,
+          onProgress: (currentChunk, totalChunks) {
+            setState(() {
+              _statusMessage = 'Generating embeddings... Chunk $currentChunk of $totalChunks';
+              _progressValue = totalChunks > 0 ? currentChunk / totalChunks : 0.0;
+            });
+          },
+        );
+      } catch (e) {
+        setState(() {
+          _statusMessage = 'Error generating embeddings: $e';
+          _isLoading = false;
+          _progressValue = null;
+        });
+        return;
+      }
 
       setState(() {
         _statusMessage = 'Storing document...';
+        _progressValue = null; // Done with progress for this operation
       });
 
       // Store in vector database
@@ -296,7 +346,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 8),
                     if (_isLoading) ...[
-                      const LoadingIndicator(),
+                      if (_progressValue != null)
+                        LinearProgressIndicator(value: _progressValue)
+                      else
+                        const LoadingIndicator(), // Existing indeterminate indicator
                       const SizedBox(height: 8),
                     ],
                     Text(_statusMessage),

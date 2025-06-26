@@ -5,7 +5,10 @@ import '../models/document_model.dart';
 
 class PdfParser {
   /// Extract text content from a PDF file
-  Future<String> extractTextFromPdf(String filePath) async {
+  Future<String> extractTextFromPdf(
+    String filePath, {
+    void Function(int currentPage, int totalPages)? onProgress,
+  }) async {
     try {
       final file = File(filePath);
       if (!await file.exists()) {
@@ -22,6 +25,9 @@ class PdfParser {
         final pageText = textExtractor.extractText(startPageIndex: i, endPageIndex: i);
         extractedText += pageText;
         
+        // Invoke progress callback
+        onProgress?.call(i + 1, document.pages.count);
+
         // Add page separator
         if (i < document.pages.count - 1) {
           extractedText += '\n\n--- Page ${i + 2} ---\n\n';

@@ -110,8 +110,13 @@ class VectorStore {
   }
 
   /// Generate and store embeddings for document chunks
-  Future<DocumentModel> generateEmbeddings(DocumentModel document) async {
+  Future<DocumentModel> generateEmbeddings(
+    DocumentModel document, {
+    void Function(int currentChunk, int totalChunks)? onProgress,
+  }) async {
     final chunksWithEmbeddings = <DocumentChunk>[];
+    final totalChunks = document.chunks.length;
+    int processedChunks = 0;
 
     for (final chunk in document.chunks) {
       print('Generating embedding for chunk: ${chunk.id}');
@@ -127,7 +132,16 @@ class VectorStore {
       );
       
       chunksWithEmbeddings.add(chunkWithEmbedding);
+      processedChunks++;
+      onProgress?.call(processedChunks, totalChunks);
     }
+
+    // This part is a bit tricky. The `EmbeddingService.getEmbeddings` (plural)
+    // already has its own onProgress callback for individual API calls if we were to use it.
+    // However, the current loop processes one chunk at a time with `getEmbedding` (singular).
+    // If we were to switch to `_embeddingService.getEmbeddings(allChunkContents, onProgress: serviceProgressCallback)`,
+    // then the `onProgress` here would be for the whole batch.
+    // For now, sticking to the current structure, this onProgress callback reports progress per chunk.
 
     return document.copyWith(chunks: chunksWithEmbeddings);
   }

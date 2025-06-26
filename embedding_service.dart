@@ -59,12 +59,17 @@ class EmbeddingService {
   }
 
   /// Get embeddings for multiple texts
-  Future<List<List<double>>> getEmbeddings(List<String> texts) async {
+  Future<List<List<double>>> getEmbeddings(
+    List<String> texts, {
+    void Function(int currentChunk, int totalChunks)? onProgress,
+  }) async {
     final embeddings = <List<double>>[];
-    
+    int index = 0;
     for (final text in texts) {
       final embedding = await getEmbedding(text);
       embeddings.add(embedding);
+      index++;
+      onProgress?.call(index, texts.length);
       
       // Add small delay to avoid rate limiting
       await Future.delayed(const Duration(milliseconds: 100));
